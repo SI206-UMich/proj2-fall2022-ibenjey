@@ -23,9 +23,52 @@ def get_listings_from_search_results(html_file):
     [
         ('Title of Listing 1', 'Cost 1', 'Listing ID 1'),  # format
         ('Loft in Mission District', 210, '1944564'),  # example
+
     ]
     """
-    pass
+    #load file data from html into Beautiful Soup
+    # Open the file and read in the content. The filepath is html_file.
+    # Process the content with BS
+
+    # with open(html_file,"r") as f:
+    #     listings = f.read()
+    #     soup = BeautifulSoup(listings, 'html.parser')
+    #     print(soup)
+    fp = open(html_file, 'r', encoding='utf-8')
+    soup = BeautifulSoup(fp, 'html.parser')
+    fp.close()
+
+
+    # find all of the divs where itemprop="itemListElement" (use .findall ???)
+    titles = soup.find_all("div", { "class": "t1jojoys dir dir-ltr"})
+    prices = soup.find_all("div", {"class": "phbjkf1 dir dir-ltr"})
+    for i in range(len(titles)):
+        titles[i] = titles[i].text.strip()
+        prices[i] = int(prices[i].text.split()[1].split('$')[1])
+    # Should produce a list where each object is a complex thing with all the information for one of the listings.
+    # Parse each to pull the data for the list out.
+    #This accquires listing ids 
+    listings = []
+    images = soup.find_all("a")
+    for image in images:
+        try:
+            if "listing_" in image["target"]:
+                listing_number = image["target"]
+                if listing_number not in listings:
+                    listings.append(listing_number)
+        except:
+            pass
+#list of tuples ( this creates the list of tuples with values: title, price, listing_id)
+
+    list_of_tuples = []
+    for i in range(len(titles)):
+        list_of_tuples.append(
+            (titles[i], prices[i], listings[i].replace("listing_", "")))
+
+    return list_of_tuples
+
+   
+    
 
 
 def get_listing_information(listing_id):
@@ -52,7 +95,48 @@ def get_listing_information(listing_id):
         number of bedrooms
     )
     """
-    pass
+    #****opens html file than parses it with BeautifulSoup*******
+    html_file = f'html_files/listing_{listing_id}.html'
+    fp = open(html_file, 'r', encoding='utf-8')
+    soup = BeautifulSoup(fp, 'html.parser')
+    fp.close()
+       
+    
+    #  ***acquires policy number FUnction 2*******
+    #finds parent(li)
+    policy_num = soup.find(
+        "ul", {"class": "fhhmddr dir dir-ltr"}).find("li").text
+    if 'pending' in policy_num.lower():
+        policy_num = "Pending"
+    elif 'exempt' in policy_num.lower() or 'not needed' in policy_num.lower():
+        policy_num = "Exempt"
+    else:
+        policy_num = policy_num.split()[2]
+
+    heading = soup.find('div', {"class": "_tqmy57"})
+# 
+
+#       ****Acquires Place Type Function 2******
+    sub_title = heading.find("h2").text
+    if "private" in sub_title.lower():
+        place_type = "Private Room"
+    elif "shared" in sub_title.lower():
+        place_type = "Shared Room"
+    else:
+        place_type = "Entire Room"
+   
+    # ***Acquires num of Bedrooms*****
+
+    spans = heading.find_all("span")
+    for span in spans:
+        text = span.text
+        if 'bedroom' in text.lower() or 'bed' in text.lower():
+            bedroom = int(text.split()[0])
+            break
+    listing_information = (policy_num, place_type, bedroom)
+    return listing_information
+
+pass
 
 
 def get_detailed_listing_database(html_file):
@@ -147,11 +231,19 @@ class TestCases(unittest.TestCase):
         # check that the variable you saved after calling the function is a list
         self.assertEqual(type(listings), list)
         # check that each item in the list is a tuple
+        for ele in listings:
+            self.assertEqual(type(ele), tuple)
+        self.assertEqual(all(isinstance(x, tuple) for x in listings), True)
 
         # check that the first title, cost, and listing id tuple is correct (open the search results html and find it)
+        self.assertEqual(
+            listings[0], ('Loft in Mission District', 210, '1944564'))
 
         # check that the last title is correct (open the search results html and find it)
-        pass
+        self.assertEqual(
+            listings[-1], ('Guest suite in Mission District', 238, '32871760'))
+
+        
 
     def test_get_listing_information(self):
         html_list = ["1623609",
@@ -174,10 +266,13 @@ class TestCases(unittest.TestCase):
             # check that the third element in the tuple is an int
             self.assertEqual(type(listing_information[2]), int)
         # check that the first listing in the html_list has policy number 'STR-0001541'
+        self.assertEqual(listing_informations[0][0], 'STR-0001541')
 
         # check that the last listing in the html_list is a "Private Room"
+        self.assertEqual(listing_informations[-1][1], 'Private Room')
 
         # check that the third listing has one bedroom
+        self.assertEqual(listing_informations[2][2], 1)
 
         pass
 
