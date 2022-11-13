@@ -153,7 +153,18 @@ def get_detailed_listing_database(html_file):
         ...
     ]
     """
-    pass
+    #creating empty list which will be filled with ((Listing Title 2,Cost 2,Listing ID 2,Policy Number 2,Place Type 2,Number of Bedrooms 2)
+    listing_database = []
+    #extracts data from revious function
+    listing = get_listings_from_search_results(html_file)
+    #We need to iterate through results then we need to pass listing id on every iteration
+    # after that we need to add the results and then append to new list
+    for x in listing: 
+        listing_info = get_listing_information(x[2])
+        record = x + listing_info  
+        listing_database.append(record)  
+
+    return listing_database
 
 
 def write_csv(data, filename):
@@ -178,7 +189,16 @@ def write_csv(data, filename):
 
     This function should not return anything.
     """
-    pass
+    #we have ot sort the data from lowest to highest 
+    sorted_data = sorted(
+        data, key=lambda t: t[1]) 
+
+    out = open(filename, 'w', newline='')#'w' this will overwrite then entire file and creates new file with open 
+    csv_out = csv.writer(out)
+    csv_out.writerow(["Listing Title", "Cost", "Listing ID",
+                     "Policy Number", "Place Type", "Number of Bedrooms"])#formatting 
+    csv_out.writerows(sorted_data) #adds data 
+    out.close()
 
 
 def check_policy_numbers(data):
